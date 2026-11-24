@@ -1,0 +1,15 @@
+@model Carwane.Web.Models.Booking
+@using Carwane.Web.Services
+@{
+    ViewData["Title"] = "Booking received";
+    string P(int v) => Money.Pkr(v);
+}
+<div class="confirm-box">
+    <h1>Booking request received</h1>
+    <p>Thank you, <strong>@Model.PassengerName</strong>. Your booking request is saved and our team will call you on <strong>@Model.PassengerPhone</strong> to confirm the fare and complete payment by card.</p>
+    <div class="ref-big">Reference: @Model.Reference</div>
+    <p><strong>@Model.Airline</strong> · @Model.DepartDate.ToString("ddd, dd MMM yyyy") → @Model.ReturnDate.ToString("ddd, dd MMM yyyy") · @Model.Travellers traveller@(Model.Travellers > 1 ? "s" : "") · @Model.Cabin</p>
+    <p>Total payable: <strong>@P(Model.TotalPkr)</strong> (Base @P(Model.BaseFarePkr) + Taxes @P(Model.TaxesPkr) + Service fee @P(Model.ServiceFeePkr)@if (Model.DiscountPkr > 0) { <text> − Discount @P(Model.DiscountPkr)</text> })</p>
+    <p class="muted">Status: @Model.Status. This is a demo booking — no ticket has been issued and no payment has been taken.</p>
+    <a class="btn btn-green" href="/">Back to flight search</a>
+</div>

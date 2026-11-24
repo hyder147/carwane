@@ -1,0 +1,53 @@
+@model Carwane.Web.Models.FlightOffer
+@using Carwane.Web.Services
+@{
+    ViewData["Title"] = "Book your flight";
+    var b = (Carwane.Web.Services.PriceBreakdown)ViewBag.Breakdown;
+    var travellers = (int)ViewBag.Travellers;
+    var fees = (Carwane.Web.Models.FeeSetting)ViewBag.Fees;
+    string P(int v) => Money.Pkr(v);
+}
+<div class="admin-wrap">
+    <h1 style="font-size:32px">Book your flight</h1>
+    <p><span class="badge-demo">DEMO FARE</span> Agent-assisted booking — no payment is taken on this page. Our team confirms the fare and calls you to complete payment by card.</p>
+    <div class="admin-card">
+        <h2>@Model.Airline @(Model.FlightNumber ?? "") — @Model.FromCode → @Model.ToCode</h2>
+        <p><strong>@Model.DepartDate.ToString("ddd, dd MMM yyyy")</strong> @Model.DepartTime → @Model.ArriveTime · @Model.Duration · @Model.Stops (@Model.Via) · @Model.Cabin · @travellers traveller@(travellers > 1 ? "s" : "")</p>
+        <p>🧳 @Model.Baggage · 🎒 @Model.CabinBag · ↩ @Model.RefundStatus</p>
+        <h3 style="font-size:21px">Full price breakdown</h3>
+        <table class="breakdown">
+            <tr><th>Base fare (@travellers × @P(b.BaseFarePkr))</th><td>@P(b.BaseFarePkr * travellers)</td></tr>
+            <tr><th>Taxes &amp; carrier charges (@travellers × @P(b.TaxesPkr))</th><td>@P(b.TaxesPkr * travellers)</td></tr>
+            <tr><th>Agency service fee (@travellers × @P(b.ServiceFeePkr))</th><td>@P(b.ServiceFeePkr * travellers)</td></tr>
+            @if (b.SupplierFeePkr > 0) { <tr><th>Supplier fees passed through</th><td>@P(b.SupplierFeePkr * travellers)</td></tr> }
+            @if (b.PaymentChargePkr > 0) { <tr><th>Payment charge — card</th><td>@P(b.PaymentChargePkr * travellers)</td></tr> }
+            @if (b.DiscountPkr > 0) { <tr class="discount"><th>Discount</th><td>− @P(b.DiscountPkr * travellers)</td></tr> }
+            <tr class="total"><td>Total payable</td><td>@P(b.TotalPayable)</td></tr>
+        </table>
+        @if (fees.IsDemo) { <p class="drawer-note">Demo fee: the agency service fee of @P(b.ServiceFeePkr) per traveller is a staging placeholder, not a real charge.</p> }
+    </div>
+    <div class="admin-card">
+        <h2>Passenger details</h2>
+        <form method="post" action="/Booking/Create/@Model.Id" class="admin-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="travellers" value="@travellers" />
+            <input type="hidden" name="depart" value="@Model.DepartDate.ToString("yyyy-MM-dd")" />
+            <input type="hidden" name="ret" value="@Model.ReturnDate.ToString("yyyy-MM-dd")" />
+            <label>Lead passenger full name (as on passport)</label>
+            <input name="name" required />
+            <div class="row">
+                <div><label>Phone / WhatsApp</label><input name="phone" required /></div>
+                <div><label>Email</label><input type="email" name="email" required /></div>
+            </div>
+            <label>Payment method</label>
+            <select name="paymentMethod"><option>Card</option></select>
+            <p class="muted">Credit / debit card only, as confirmed by the agency. Card details are never stored on this site.</p>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <p style="color:#9b2c2c;font-weight:700">@Html.ValidationSummary()</p>
+            }
+            <button class="btn btn-green" type="submit" style="margin-top:16px">Confirm booking request — @P(b.TotalPayable)</button>
+        </form>
+        <p class="muted" style="margin-top:12px">By confirming, you ask the agency to hold this fare and call you to complete payment. The fare will be re-checked before payment.</p>
+    </div>
+</div>

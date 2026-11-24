@@ -1,0 +1,42 @@
+@model Carwane.Web.Models.FlightOffer
+@using Carwane.Web.Services
+@{
+    var b = (Carwane.Web.Services.PriceBreakdown)ViewBag.Breakdown;
+    var travellers = (int)ViewBag.Travellers;
+    string P(int v) => Money.Pkr(v);
+}
+<h2 style="font-size:26px;margin-top:0">@Model.Airline @(Model.FlightNumber ?? "")</h2>
+<p><span class="badge-demo">DEMO FARE</span> <span class="badge">Round trip</span></p>
+<p style="font-size:17px"><strong>@Model.DepartDate.ToString("ddd, dd MMM yyyy")</strong> → <strong>@Model.ReturnDate.ToString("ddd, dd MMM yyyy")</strong> · @Model.Cabin · @travellers traveller@(travellers > 1 ? "s" : "")</p>
+<div class="time-row">
+    <div class="time">@Model.DepartTime<small>@Model.FromCode</small></div>
+    <div class="duration"><div class="dash"></div>@Model.Duration · @Model.Stops<br />@Model.Via</div>
+    <div class="time">@Model.ArriveTime<small>@Model.ToCode</small></div>
+</div>
+<div class="chips">
+    <span class="chip">🧳 @Model.Baggage</span>
+    <span class="chip">🎒 @Model.CabinBag</span>
+    <span class="chip">↩ @Model.RefundStatus</span>
+</div>
+<h3 style="font-size:21px">Full price breakdown — before you book</h3>
+<table class="breakdown">
+    <tr><th>Base fare (@travellers × @P(b.BaseFarePkr))</th><td>@P(b.BaseFarePkr * travellers)</td></tr>
+    <tr><th>Taxes &amp; carrier charges (@travellers × @P(b.TaxesPkr))</th><td>@P(b.TaxesPkr * travellers)</td></tr>
+    <tr><th>Agency service fee (@(travellers) × @P(b.ServiceFeePkr))</th><td>@P(b.ServiceFeePkr * travellers)</td></tr>
+    @if (b.SupplierFeePkr > 0)
+    {
+        <tr><th>Supplier fees passed through</th><td>@P(b.SupplierFeePkr * travellers)</td></tr>
+    }
+    @if (b.PaymentChargePkr > 0)
+    {
+        <tr><th>Payment charge — card</th><td>@P(b.PaymentChargePkr * travellers)</td></tr>
+    }
+    @if (b.DiscountPkr > 0)
+    {
+        <tr class="discount"><th>Discount</th><td>− @P(b.DiscountPkr * travellers)</td></tr>
+    }
+    <tr class="total"><td>Total payable (@travellers traveller@(travellers > 1 ? "s" : ""))</td><td>@P(b.TotalPayable)</td></tr>
+</table>
+<p class="drawer-note">Per traveller: @P(b.TotalPerTraveller). Demo fare — the price will be re-checked before payment, and if it changes you will see the new breakdown and confirm again. Offer expiry: demo offers do not expire, but live Duffel offers expire in about 30 minutes.</p>
+<p class="drawer-note">Fare rules: @Model.RefundStatus. Visa fee is non-refundable once submitted. See the refund &amp; change policy on the home page.</p>
+<a class="btn btn-green" style="width:100%" href="/Booking/Create/@Model.Id?travellers=@travellers&depart=@Model.DepartDate.ToString("yyyy-MM-dd")&ret=@Model.ReturnDate.ToString("yyyy-MM-dd")&cabin=@Model.Cabin">Select this flight — @P(b.TotalPayable)</a>

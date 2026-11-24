@@ -1,0 +1,378 @@
+@model Carwane.Web.ViewModels.HomeViewModel
+@using Carwane.Web.Services
+@{
+    ViewData["Title"] = "Flights to Jeddah & Madinah — December 2026";
+    var lowestDay = Model.Calendar.OrderBy(d => d.LowestRoundTripTotalPkr).First();
+    var selectedDay = Model.Calendar.FirstOrDefault(d => d.Date == Model.Depart) ?? lowestDay;
+    var saving = selectedDay.LowestRoundTripTotalPkr - lowestDay.LowestRoundTripTotalPkr;
+    var pkr = (int v) => Money.Pkr(v);
+}
+
+<section class="hero" aria-label="Introduction">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="hero-inner">
+        <span class="eyebrow">Travel with peace of mind</span>
+        <h1>Your journey begins<br />with the right fare.</h1>
+        <p>Compare dates, discover better fares, and travel with a team that cares — from Karachi to Jeddah and Madinah.</p>
+    </div>
+</section>
+
+<div class="search-wrap" id="flights">
+    <form id="search-form" class="search-card" method="get" action="/">
+        <div class="trip-types" role="radiogroup" aria-label="Trip type">
+            <label><input type="radio" name="tripType" value="Round trip" checked /> Round trip</label>
+            <label><input type="radio" name="tripType" value="One way" /> One way</label>
+            <label><input type="radio" name="tripType" value="Multi-city" disabled /> Multi-city (coming soon)</label>
+        </div>
+        <div class="search-grid">
+            <div class="field">
+                <label for="from">From</label>
+                <select id="from" name="from">
+                    @foreach (var a in DemoFareService.PakistaniAirports)
+                    {
+                        <option value="@a.Code" selected="@(Model.From == a.Code)">@a.City (@a.Code) — @a.Airport</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="to">To</label>
+                <select id="to" name="to">
+                    @foreach (var a in DemoFareService.SaudiAirports)
+                    {
+                        <option value="@a.Code" selected="@(Model.To == a.Code)">@a.City (@a.Code) — @a.Airport</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label for="depart">Departure</label>
+                <input id="depart" type="date" name="depart" value="@Model.Depart.ToString("yyyy-MM-dd")" min="2026-12-01" max="2026-12-31" />
+                <span class="hint">@Model.Depart.ToString("ddd, dd MMM yyyy")</span>
+            </div>
+            <div class="field">
+                <label for="ret">Return</label>
+                <input id="ret" type="date" name="ret" value="@Model.Return.ToString("yyyy-MM-dd")" min="2027-01-01" max="2027-02-28" />
+                <span class="hint">@Model.Return.ToString("ddd, dd MMM yyyy") · @(Model.Return.DayNumber - Model.Depart.DayNumber) nights</span>
+            </div>
+            <div class="field">
+                <label for="travellers">Travellers</label>
+                <select id="travellers" name="travellers">
+                    @for (var n = 1; n <= 9; n++)
+                    {
+                        <option value="@n" selected="@(Model.Travellers == n)">@n Adult@(n > 1 ? "s" : "")</option>
+                    }
+                </select>
+                <span class="hint">@Model.Cabin</span>
+            </div>
+            <button class="btn btn-green" type="submit">Search flights →</button>
+        </div>
+        <div class="search-note">
+            <span>✦ Need help planning Umrah? <b>Talk to a travel expert</b> — contact details to be confirmed by the agency.</span>
+            <span>Prices shown in PKR · Demo fares — not live</span>
+        </div>
+        <div class="recent" id="recent-searches" aria-live="polite"></div>
+        @if (!string.IsNullOrEmpty(Model.Notice))
+        {
+            <div class="notice" role="status">@Model.Notice</div>
+        }
+    </form>
+</div>
+
+<section class="section" aria-label="Fare calendar">
+    <div class="section-head">
+        <div>
+            <h2>Find your best day to fly</h2>
+            <p>Compare fares across nearby dates before you choose.</p>
+        </div>
+        <span class="count">@Model.Offers.Count flight options · @Model.Depart.ToString("ddd, dd MMM yyyy")</span>
+    </div>
+    <p class="section-note">Each date shows the <strong>lowest complete round-trip total per person, taxes included</strong>, for a return on <strong>@Model.Return.ToString("ddd, dd MMM yyyy")</strong>. Change the return date to update these prices. All amounts are demo placeholders.</p>
+
+    <div class="calendar-card">
+        <div class="cal-top">
+            <span class="route">@Model.From → @Model.To</span>
+            <span class="month-label">December 2026</span>
+        </div>
+        <div class="day-list" id="day-list">
+            @foreach (var day in Model.Calendar)
+            {
+                var url = $"/?from={Model.From}&to={Model.To}&depart={day.Date:yyyy-MM-dd}&ret={Model.Return:yyyy-MM-dd}&travellers={Model.Travellers}&cabin={Model.Cabin}";
+                <a class="day-link @(day.IsLowest ? "lowest" : "") @(day.Date == Model.Depart ? "selected" : "")" href="@url" aria-label="@day.Date.ToString("dddd, dd MMMM yyyy") — round-trip total @pkr(day.LowestRoundTripTotalPkr)">
+                    <span><span class="dow">@day.Date.ToString("ddd")</span><br /><span class="dnum">@day.Date.Day</span></span>
+                    <span style="text-align:right"><span class="fare">@pkr(day.LowestRoundTripTotalPkr)</span><br />
+                    @if (day.IsLowest) { <span class="badge-lowest">Lowest</span> }
+                    @if (day.Date == Model.Depart) { <span class="badge-lowest" style="background:#fff;color:#064e3b">Selected</span> }</span>
+                </a>
+            }
+        </div>
+        <div class="month-grid" id="month-grid" aria-label="December 2026 month grid">
+            <span class="dayhead">Mon</span><span class="dayhead">Tue</span><span class="dayhead">Wed</span><span class="dayhead">Thu</span><span class="dayhead">Fri</span><span class="dayhead">Sat</span><span class="dayhead">Sun</span>
+            <span class="day-cell empty"></span>
+            @foreach (var day in Model.Calendar)
+            {
+                var url = $"/?from={Model.From}&to={Model.To}&depart={day.Date:yyyy-MM-dd}&ret={Model.Return:yyyy-MM-dd}&travellers={Model.Travellers}&cabin={Model.Cabin}";
+                <a class="day-cell @(day.IsLowest ? "lowest" : "") @(day.Date == Model.Depart ? "selected" : "")" href="@url">
+                    <span class="dnum">@day.Date.Day</span>
+                    <span class="fare">@pkr(day.LowestRoundTripTotalPkr)</span>
+                    @if (day.IsLowest) { <span class="badge-lowest">Lowest</span> }
+                </a>
+            }
+            <span class="day-cell empty"></span><span class="day-cell empty"></span><span class="day-cell empty"></span>
+        </div>
+        <div class="legend">
+            <span><span class="badge-lowest">Lowest</span> Lowest fare in December</span>
+            <span>● Available fare</span>
+            <span class="fine">Demo fares · not live · Last checked @Model.GeneratedAt.ToString("dd MMM yyyy, HH:mm") UTC — re-checked before payment</span>
+        </div>
+        <button type="button" class="btn btn-outline toggle-btn" id="calendar-toggle" aria-expanded="false">Show month grid</button>
+    </div>
+
+    @if (saving > 0)
+    {
+        <div class="savings-panel">
+            <h3>Flexible dates could save you @pkr(saving) per traveller</h3>
+            <p>The cheapest day nearby is <strong>@lowestDay.Date.ToString("ddd, dd MMM yyyy") at @pkr(lowestDay.LowestRoundTripTotalPkr)</strong>, versus @pkr(selectedDay.LowestRoundTripTotalPkr) on your selected day (@selectedDay.Date.ToString("ddd, dd MMM")). Same return date, same travellers, same cabin. <a href="/?from=@Model.From&to=@Model.To&depart=@lowestDay.Date.ToString("yyyy-MM-dd")&ret=@Model.Return.ToString("yyyy-MM-dd")&travellers=@Model.Travellers&cabin=@Model.Cabin">See flights on @lowestDay.Date.ToString("dd MMM") →</a></p>
+        </div>
+    }
+
+    <div class="results-head">
+        <h2 style="margin:0">Flights · @Model.Depart.ToString("ddd, dd MMM yyyy")</h2>
+        <label class="sort-row">Sort by
+            <select id="sort-select">
+                <option value="cheapest">Cheapest first</option>
+                <option value="fastest">Fastest first</option>
+            </select>
+        </label>
+    </div>
+    <p class="muted">Times and fares below are <strong>demo samples</strong> — only Saudia SV 701 is taken from the agency mockup; the other options are unnumbered demo samples. Nothing here is a real schedule or a bookable fare yet.</p>
+    <div id="flight-results">
+        @foreach (var offer in Model.Offers)
+        {
+            var hours = double.TryParse(offer.Duration.Replace("h", ".").Replace("m", "").Replace(" ", ""), out var h) ? h : 9.0;
+            var total = offer.BaseFarePkr + offer.TaxesPkr + Model.Fees.ServiceFeeAmountPkr;
+            <article class="flight-card" data-total="@total" data-hours="@hours">
+                <div class="flight-top">
+                    <div class="airline">
+                        <span class="air-logo">✦</span>
+                        <div>
+                            <strong>@offer.Airline</strong>
+                            <small>@(offer.FlightNumber ?? "Demo sample") · @offer.Cabin · @offer.Baggage</small>
+                        </div>
+                    </div>
+                    <div class="flight-badges">
+                        <span class="badge-demo">DEMO FARE</span>
+                        @if (offer.IsCheapest) { <span class="badge">Cheapest</span> }
+                        @if (offer.IsFastest) { <span class="badge fast">Fastest</span> }
+                    </div>
+                </div>
+                <div class="time-row">
+                    <div class="time">@offer.DepartTime<small>@offer.FromCode · @Model.Depart.ToString("ddd, dd MMM")</small></div>
+                    <div class="duration"><div class="dash"></div>@offer.Duration · @offer.Stops<br />@offer.Via</div>
+                    <div class="time">@offer.ArriveTime<small>@offer.ToCode · Jeddah</small></div>
+                </div>
+                <div class="chips">
+                    <span class="chip">🧳 @offer.Baggage</span>
+                    <span class="chip">🎒 @offer.CabinBag</span>
+                    <span class="chip">↩ @offer.RefundStatus</span>
+                </div>
+                <div class="price-row">
+                    <div class="price">@pkr(total)<small>per traveller · round-trip total · taxes included*</small></div>
+                    <div class="card-actions">
+                        <label class="compare-check"><input type="checkbox" value="@offer.Id" /> Compare</label>
+                        <a class="btn btn-outline" href="/Home/FlightDetails/@offer.Id?travellers=@Model.Travellers&depart=@Model.Depart.ToString("yyyy-MM-dd")&ret=@Model.Return.ToString("yyyy-MM-dd")" data-flight-details="/Home/FlightDetails/@offer.Id?travellers=@Model.Travellers&depart=@Model.Depart.ToString("yyyy-MM-dd")&ret=@Model.Return.ToString("yyyy-MM-dd")">Details</a>
+                        <a class="btn btn-green" href="/Booking/Create/@offer.Id?travellers=@Model.Travellers&depart=@Model.Depart.ToString("yyyy-MM-dd")&ret=@Model.Return.ToString("yyyy-MM-dd")&cabin=@Model.Cabin">Select</a>
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
+    <p class="muted">* The “taxes included” total is the full breakdown: base fare + taxes &amp; carrier charges + agency service fee. See the full itemised breakdown in Details before you book — no hidden charges.</p>
+
+    <div class="form-card">
+        <h3>Get a fare-drop alert</h3>
+        <p>Tell us the price you would book at and we will message you when a demo fare on this route drops to it or below. Fares are not guaranteed until ticketed.</p>
+        <form method="post" action="/Home/FareAlert" class="alert-form">
+            @Html.AntiForgeryToken()
+            <input type="number" name="targetPrice" min="10000" step="100" placeholder="Target price in PKR, e.g. 75000" required aria-label="Target price in PKR" />
+            <input type="text" name="contact" placeholder="WhatsApp number or email" required aria-label="WhatsApp number or email" />
+            <select name="channel" aria-label="Alert channel"><option>WhatsApp</option><option>Email</option></select>
+            <button class="btn btn-green" type="submit">Set alert</button>
+        </form>
+    </div>
+</section>
+
+<section class="section" id="umrah" aria-label="Umrah visas and packages">
+    <div class="section-head">
+        <div>
+            <h2>Umrah visas &amp; packages</h2>
+            <p>Visa, hotel and catering — with flights, transport and Ziyarat arranged by our team.</p>
+        </div>
+    </div>
+    <p class="section-note">Visa rates below are from the agency's Facebook post of 6–7 November 2026: <strong>465–500 SAR</strong>, including Visa + Hotel BRN + Catering BRN, rates subject to change. <strong>Per-duration prices are not published yet</strong> — the client will confirm each one. The PKR figures are <strong>estimates only</strong> at 1 SAR = PKR @Model.SarToPkr.ToString("N2") (@ViewBag.SarDate ?? "24 Nov 2026"); the rate changes daily.</p>
+    <div class="umrah-grid">
+        @foreach (var days in new[] { "10", "15", "21", "28" })
+        {
+            <article class="umrah-card">
+                <h3>@days-day Umrah</h3>
+                <p class="days">Visa + Hotel BRN + Catering BRN</p>
+                <div class="sar">SAR 465–500</div>
+                <div class="pkr">approx. @Money.Pkr(34300) – @Money.Pkr(36900) <span class="est-tag">ESTIMATED</span></div>
+                <ul>
+                    <li>Umrah visa</li>
+                    <li>Hotel with BRN</li>
+                    <li>Catering with BRN</li>
+                    <li>Transport &amp; Ziyarat on request</li>
+                </ul>
+                <p class="muted">Final price per duration to be confirmed by the agency.</p>
+                <a class="btn btn-green" href="#umrah-enquiry">Enquire for @days days</a>
+            </article>
+        }
+    </div>
+    <div class="form-card" id="umrah-enquiry">
+        <h3>Umrah enquiry</h3>
+        <p>Tell us your dates and group size and we will call you back with the confirmed price and hotel options. No payment is taken here.</p>
+        <form method="post" action="/Home/Enquiry">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="kind" value="Umrah" />
+            <div class="form-grid">
+                <div><label for="u-name">Your name</label><input id="u-name" name="name" required /></div>
+                <div><label for="u-phone">Phone / WhatsApp</label><input id="u-phone" name="phone" required /></div>
+                <div><label for="u-email">Email (optional)</label><input id="u-email" type="email" name="email" /></div>
+                <div><label for="u-days">Duration</label>
+                    <select id="u-days" name="durationDays"><option>10 days</option><option>15 days</option><option>21 days</option><option>28 days</option><option>Not sure yet</option></select>
+                </div>
+                <div><label for="u-msg">Anything else (dates, travellers, hotel needs)</label><textarea id="u-msg" name="message"></textarea></div>
+            </div>
+            <button class="btn btn-green" type="submit">Send Umrah enquiry</button>
+        </form>
+    </div>
+    <div class="form-card">
+        <h3>Hajj 2027 — register your interest</h3>
+        <p>Hajj packages are arranged as group departures with visa, flights, hotels, transport and Ziyarat. Leave your details and we will call you when group dates and prices are confirmed.</p>
+        <form method="post" action="/Home/Enquiry">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="kind" value="Hajj" />
+            <div class="form-grid">
+                <div><label for="h-name">Your name</label><input id="h-name" name="name" required /></div>
+                <div><label for="h-phone">Phone / WhatsApp</label><input id="h-phone" name="phone" required /></div>
+                <div><label for="h-email">Email (optional)</label><input id="h-email" type="email" name="email" /></div>
+                <div><label for="h-msg">Group size / notes</label><textarea id="h-msg" name="message"></textarea></div>
+            </div>
+            <button class="btn btn-green" type="submit">Register Hajj interest</button>
+        </form>
+    </div>
+</section>
+
+<section class="section" id="live" aria-label="Live from the Haramain">
+    <div class="section-head">
+        <div>
+            <h2>Live from the Haramain</h2>
+            <p>Watch Makkah and Madinah live, from the official Saudi broadcasts. Tap to play — no autoplay, no sound until you turn it on.</p>
+        </div>
+    </div>
+    <div class="live-grid">
+        <article class="live-card">
+            <div class="live-thumb">
+                <img src="~/images/ziyarat/haram.jpg" alt="The Kaaba in Masjid al-Haram, Makkah" loading="lazy" />
+                <button type="button" class="play" data-live-channel="UCos52azQNBgW63_9uDJoPDA" data-live-title="Live from Masjid al-Haram, Makkah — Quran TV"><span>▶ Play live — Makkah</span></button>
+            </div>
+            <div class="live-body">
+                <h3>Makkah — Masjid al-Haram</h3>
+                <p>Official live stream from the Saudi Broadcasting Authority (Quran TV).</p>
+                <a class="btn btn-outline" href="https://www.youtube.com/channel/UCos52azQNBgW63_9uDJoPDA" target="_blank" rel="noopener">Watch on YouTube ↗</a>
+            </div>
+            <p class="live-fallback">If the stream has restarted, the photo above is shown until you tap play again.</p>
+        </article>
+        <article class="live-card">
+            <div class="live-thumb">
+                <img src="~/images/hero-madinah.jpg" alt="The Prophet's Mosque in Madinah" loading="lazy" />
+                <button type="button" class="play" data-live-channel="UCROKYPep-UuODNwyipe6JMw" data-live-title="Live from Masjid an-Nabawi, Madinah — Sunnah TV"><span>▶ Play live — Madinah</span></button>
+            </div>
+            <div class="live-body">
+                <h3>Madinah — Masjid an-Nabawi</h3>
+                <p>Official live stream from the Saudi Broadcasting Authority (Sunnah TV).</p>
+                <a class="btn btn-outline" href="https://www.youtube.com/channel/UCROKYPep-UuODNwyipe6JMw" target="_blank" rel="noopener">Watch on YouTube ↗</a>
+            </div>
+            <p class="live-fallback">If the stream has restarted, the photo above is shown until you tap play again.</p>
+        </article>
+    </div>
+</section>
+
+<section class="section" id="ziyarat" aria-label="Ziyarat guide">
+    <div class="section-head">
+        <div>
+            <h2>Ziyarat — places to visit</h2>
+            <p>Holy and historic places in Makkah and Madinah, with what is known about each one.</p>
+        </div>
+        <span class="count">@Model.Ziyarat.Count places</span>
+    </div>
+    <p class="section-note"><strong>Please read this first:</strong> Ziyarat means visiting places connected with the life of the Prophet (peace be upon him) and early Islam. The two Harams — Makkah and Madinah — are the greatest visits. Beyond them, only Masjid Quba carries a specific Sunnah reward (the reward of an Umrah for one prayer there). Visiting the martyrs of Uhud and the people of Baqi follows the Prophet's own practice. Every other place here is history to learn from, not a rite of Umrah or Hajj, and no special prayer is prescribed for it. Only the hadiths quoted below are used — nothing has been added or invented.</p>
+    <div class="filter-row" role="group" aria-label="Filter places by city">
+        <button type="button" class="filter-btn active" data-filter="All">All places</button>
+        <button type="button" class="filter-btn" data-filter="Makkah">Makkah</button>
+        <button type="button" class="filter-btn" data-filter="Madinah">Madinah</button>
+    </div>
+    <div class="ziyarat-grid">
+        @foreach (var place in Model.Ziyarat)
+        {
+            <article class="ziyarat-card" data-city="@place.City">
+                <div class="ziyarat-img">
+                    @if (!string.IsNullOrEmpty(place.Image))
+                    {
+                        <img src="@place.Image" alt="@place.Name" loading="lazy" />
+                    }
+                    else
+                    {
+                        <div class="ziyarat-pattern" aria-hidden="true">✦</div>
+                    }
+                </div>
+                <div class="ziyarat-body">
+                    <h3>@place.Name</h3>
+                    <span class="city-tag">@place.City</span>
+                    @if (place.DoFirst) { <span class="do-first">Do first</span> }
+                    <p>@place.Description</p>
+                    <div class="ziyarat-meta">⏱ @place.TimeNeeded · 📍 @place.Distance</div>
+                    @if (!string.IsNullOrEmpty(place.Hadith))
+                    {
+                        <blockquote class="hadith">@place.Hadith<cite>@place.HadithSource</cite></blockquote>
+                    }
+                    @if (!string.IsNullOrEmpty(place.ImageCredit))
+                    {
+                        <p class="photo-credit">@place.ImageCredit</p>
+                    }
+                </div>
+            </article>
+        }
+    </div>
+    <p class="muted" style="margin-top:16px">Photos: Wikimedia Commons / Unsplash, as credited on each card. Places without a verified photo use a plain pattern tile — no hotel or stock photo is shown as if it were the place. Hotels are not listed here: no hotel is shown until the agency gives its real hotel names and photos.</p>
+</section>
+
+<section class="section" id="policy" aria-label="Refund and change policy">
+    <div class="section-head">
+        <div>
+            <h2>Refund &amp; change policy</h2>
+            <p>Plain words, before you pay.</p>
+        </div>
+    </div>
+    <div class="policy-card">
+        <div class="policy-inner">
+            <h3>Standard policy <span class="est-tag">TO BE CONFIRMED BY THE AGENCY</span></h3>
+            <p>This is the standard policy used by large travel companies. The agency has not confirmed its own policy yet, so treat this as a guide until they do.</p>
+            <ul>
+                <li><strong>Airline fare rules apply.</strong> Every ticket follows the fare rules of the airline that issued it — check them in the flight details drawer before you book.</li>
+                <li><strong>Non-refundable fares</strong> are not refunded after ticketing.</li>
+                <li><strong>Visa fees are non-refundable</strong> once the visa has been submitted.</li>
+                <li><strong>Date change:</strong> airline change fee plus any fare difference for the new date.</li>
+                <li><strong>Cancellation charges</strong> follow the airline and hotel rules for your booking.</li>
+                <li><strong>Refunds</strong> go back to the original payment method.</li>
+                <li><strong>No refund for a no-show</strong> — if you do not travel and do not cancel in advance.</li>
+            </ul>
+            <p><strong>Paying by card:</strong> credit / debit card only, as confirmed by the agency. Card details are never stored on this site — payment goes through the payment gateway only.</p>
+        </div>
+    </div>
+    <div class="trust-grid" style="margin-top:20px">
+        <div class="trust-card"><b>✦ Umrah travel support</b>Guidance for the journey, not just the ticket.</div>
+        <div class="trust-card"><b>☎ Real human assistance</b>Call or WhatsApp our Karachi team — contact details to be confirmed.</div>
+        <div class="trust-card"><b>◈ Clear fare details</b>See taxes, baggage, and rules before paying.</div>
+        <div class="trust-card"><b>✓ Booking help</b>Support before and after your booking.</div>
+    </div>
+</section>

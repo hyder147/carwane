@@ -1,0 +1,19 @@
+@{
+    ViewData["Title"] = "Admin login";
+}
+<div class="admin-wrap">
+    <div class="admin-card">
+        <h2>Admin login</h2>
+        <p>Fee settings and bookings are admin-only. Demo passcode: <strong>admin123</strong> — change it in <code>appsettings.json</code> (or the <code>Admin__Passcode</code> environment variable) before production, and add real authentication before go-live.</p>
+        <form method="post" action="/Admin/Login" class="admin-form">
+            @Html.AntiForgeryToken()
+            <label>Admin passcode</label>
+            <input type="password" name="passcode" required />
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <p style="color:#9b2c2c;font-weight:700">@Html.ValidationSummary()</p>
+            }
+            <button class="btn btn-green" type="submit" style="margin-top:16px">Log in</button>
+        </form>
+    </div>
+</div>

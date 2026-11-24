@@ -1,0 +1,104 @@
+@using Carwane.Web.Services
+@{
+    ViewData["Title"] = "Admin — fee settings";
+    var fees = (Carwane.Web.Models.FeeSetting)ViewBag.Fees;
+    var audit = (List<Carwane.Web.Models.FeeSettingAudit>)ViewBag.Audit;
+    var bookings = (List<Carwane.Web.Models.Booking>)ViewBag.Bookings;
+    var enquiries = (List<Carwane.Web.Models.Enquiry>)ViewBag.Enquiries;
+    var alerts = (List<Carwane.Web.Models.FareAlert>)ViewBag.Alerts;
+    string P(int v) => Money.Pkr(v);
+}
+<div class="admin-wrap">
+    <div class="section-head">
+        <h1 style="font-size:30px;margin:0">Admin</h1>
+        <a class="btn btn-outline" href="/Admin/Logout">Log out</a>
+    </div>
+    @if (TempData["AdminNotice"] is string n) { <div class="notice">@n</div> }
+    @if (TempData["AdminError"] is string e) { <div class="notice" style="background:#fdecec;border-color:#e5a3a3;color:#7a1f1f">@e</div> }
+    @if (fees.IsDemo)
+    {
+        <div class="notice" style="background:#fff3cd;border-color:#c49a48;color:#5c430a">⚠ DEMO FEES — PLACEHOLDERS ONLY, NOT REAL CHARGES. Current version: v@fees.Version. Production must start at PKR 0 / off — do not go live while any fee is still marked demo.</div>
+    }
+    <div class="admin-card">
+        <h2>Fee settings <span class="version-tag">v@fees.Version</span> @if (fees.IsDemo) { <span class="demo-tag">DEMO</span> }</h2>
+        <p class="muted">Changing these values re-prices every public breakdown immediately. Every change is saved as a new version and written to the audit log below.</p>
+        <form method="post" action="/Admin/Fees" class="admin-form">
+            @Html.AntiForgeryToken()
+            <label>Agency service fee — mode</label>
+            <select name="serviceFeeMode">
+                <option value="flat_per_traveller" selected="@(fees.ServiceFeeMode == "flat_per_traveller")">Flat PKR per traveller</option>
+                <option value="flat_per_booking" selected="@(fees.ServiceFeeMode == "flat_per_booking")">Flat PKR per booking</option>
+                <option value="percent_of_base" selected="@(fees.ServiceFeeMode == "percent_of_base")">Percent of base fare</option>
+            </select>
+            <div class="row">
+                <div><label>Service fee amount (PKR)</label><input type="number" name="serviceFeeAmountPkr" min="0" value="@fees.ServiceFeeAmountPkr" /></div>
+                <div><label>Service fee percent (0–100)</label><input type="number" name="serviceFeePercent" min="0" max="100" value="@fees.ServiceFeePercent" /></div>
+            </div>
+            <label class="check-line"><input type="checkbox" name="supplierFeesEnabled" value="true" @(fees.SupplierFeesEnabled ? "checked" : "") /> Pass supplier (Duffel) fees through to the customer</label>
+            <label>Supplier fee amount (PKR per traveller)</label>
+            <input type="number" name="supplierFeeAmountPkr" min="0" value="@fees.SupplierFeeAmountPkr" />
+            <label class="check-line"><input type="checkbox" name="cardChargeEnabled" value="true" @(fees.CardChargeEnabled ? "checked" : "") /> Charge a card payment fee</label>
+            <div class="row">
+                <div><label>Card charge amount (PKR)</label><input type="number" name="cardChargeAmountPkr" min="0" value="@fees.CardChargeAmountPkr" /></div>
+                <div><label>Card charge percent (0–100)</label><input type="number" name="cardChargePercent" min="0" max="100" value="@fees.CardChargePercent" /></div>
+            </div>
+            <label class="check-line"><input type="checkbox" name="discountActive" value="true" @(fees.DiscountActive ? "checked" : "") /> Discount active</label>
+            <div class="row">
+                <div><label>Discount code</label><input name="discountCode" value="@fees.DiscountCode" /></div>
+                <div><label>Discount type</label>
+                    <select name="discountType"><option value="flat" selected="@(fees.DiscountType == "flat")">Flat PKR</option><option value="percent" selected="@(fees.DiscountType == "percent")">Percent</option></select>
+                </div>
+            </div>
+            <div class="row">
+                <div><label>Discount amount (PKR)</label><input type="number" name="discountAmountPkr" min="0" value="@fees.DiscountAmountPkr" /></div>
+                <div><label>Discount percent (0–100)</label><input type="number" name="discountPercent" min="0" max="100" value="@fees.DiscountPercent" /></div>
+            </div>
+            <label class="check-line"><input type="checkbox" name="isDemo" value="true" @(fees.IsDemo ? "checked" : "") /> These values are DEMO placeholders (keep ticked in staging; untick only when the client approves real values)</label>
+            <button class="btn btn-green" type="submit" style="margin-top:18px">Save fee settings as v@(fees.Version + 1)</button>
+        </form>
+    </div>
+    <div class="admin-card">
+        <h2>Audit log</h2>
+        @if (!audit.Any()) { <p class="muted">No changes yet.</p> }
+        <table class="admin-table">
+            <tr><th>Version</th><th>Changed by</th><th>When (UTC)</th><th>Summary</th></tr>
+            @foreach (var a in audit)
+            {
+                <tr><td>v@a.Version</td><td>@a.ChangedBy</td><td>@a.ChangedAt.ToString("dd MMM yyyy HH:mm")</td><td>@a.Summary</td></tr>
+            }
+        </table>
+    </div>
+    <div class="admin-card">
+        <h2>Bookings (@bookings.Count shown)</h2>
+        @if (!bookings.Any()) { <p class="muted">No bookings yet.</p> }
+        <table class="admin-table">
+            <tr><th>Reference</th><th>Passenger</th><th>Route / dates</th><th>Total</th><th>Status</th></tr>
+            @foreach (var bk in bookings)
+            {
+                <tr><td>@bk.Reference</td><td>@bk.PassengerName<br />@bk.PassengerPhone</td><td>@bk.Airline · @bk.DepartDate.ToString("dd MMM yyyy") → @bk.ReturnDate.ToString("dd MMM yyyy")</td><td>@P(bk.TotalPkr)</td><td>@bk.Status</td></tr>
+            }
+        </table>
+    </div>
+    <div class="admin-card">
+        <h2>Enquiries (@enquiries.Count shown)</h2>
+        @if (!enquiries.Any()) { <p class="muted">No enquiries yet.</p> }
+        <table class="admin-table">
+            <tr><th>Reference</th><th>Kind</th><th>Name / phone</th><th>Duration</th><th>Message</th></tr>
+            @foreach (var en in enquiries)
+            {
+                <tr><td>@en.Reference</td><td>@en.Kind</td><td>@en.Name<br />@en.Phone</td><td>@en.DurationDays</td><td>@en.Message</td></tr>
+            }
+        </table>
+    </div>
+    <div class="admin-card">
+        <h2>Fare alerts (@alerts.Count shown)</h2>
+        @if (!alerts.Any()) { <p class="muted">No fare alerts yet.</p> }
+        <table class="admin-table">
+            <tr><th>Route</th><th>Target</th><th>Contact</th><th>Channel</th></tr>
+            @foreach (var al in alerts)
+            {
+                <tr><td>@al.Route</td><td>@P(al.TargetPricePkr)</td><td>@al.Contact</td><td>@al.Channel</td></tr>
+            }
+        </table>
+    </div>
+</div>

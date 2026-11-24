@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Carwane Tajdare Madina</title>
+    <meta name="description" content="Carwane Tajdare Madina — flights, Umrah and Hajj travel from Karachi. Staging demo: all fares shown are demo placeholders." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="demo-banner" role="note">STAGING DEMO — all fares and fees shown are demo placeholders, not real prices. Live fares will update automatically once connected (Duffel).</div>
+    <header class="site-header">
+        <a class="brand" href="/">
+            <img class="brand-logo" src="~/images/logo/logo-gold.png" alt="Carwane Tajdare Madina logo" />
+            <span class="brand-text"><span class="brand-name">Carwane Tajdare Madina</span><span class="brand-sub">Your journey, with care</span></span>
+        </a>
+        <nav class="main-nav" aria-label="Main navigation">
+            <a href="/#flights" class="active">Flights</a>
+            <a href="/#umrah">Umrah Packages</a>
+            <a href="/#live">Live from Haramain</a>
+            <a href="/#ziyarat">Ziyarat</a>
+            <a href="/#policy">Refund Policy</a>
+        </nav>
+        <span class="header-note">EN</span>
+    </header>
+    <main>
+        @RenderBody()
+    </main>
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <img class="footer-logo" src="~/images/logo/logo-black.png" alt="Carwane Tajdare Madina logo" />
+                <p><strong>Carwane Tajdare Madina</strong><br />Gateway to divine places — your trusted partner for Umrah &amp; Hajj services.</p>
+                <p class="footer-contact">Phone, WhatsApp and email: <strong>to be confirmed by the agency</strong>.</p>
+            </div>
+            <div class="footer-links">
+                <p><strong>Travel</strong></p>
+                <a href="/#flights">Flight search</a>
+                <a href="/#umrah">Umrah visas</a>
+                <a href="/#ziyarat">Ziyarat guide</a>
+                <a href="/#live">Live from Haramain</a>
+            </div>
+            <div class="footer-links">
+                <p><strong>Good to know</strong></p>
+                <a href="/#policy">Refund &amp; change policy</a>
+                <p class="footer-fine">All fares and fees on this site are demo placeholders. G.L. No. 2717 appears in the agency logo; its meaning is to be confirmed — it is not presented here as an official licence.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 Carwane Tajdare Madina · Umrah · Flights · Hajj · Transport · Staging demo — not a live booking site yet.</div>
+    </footer>
+    <div id="drawer-overlay" class="drawer-overlay" hidden></div>
+    <aside id="flight-drawer" class="flight-drawer" role="dialog" aria-modal="true" aria-label="Flight details" hidden>
+        <button type="button" class="drawer-close" id="drawer-close" aria-label="Close flight details">✕ Close</button>
+        <div id="drawer-body"></div>
+    </aside>
+    <div id="compare-bar" class="compare-bar" hidden></div>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
