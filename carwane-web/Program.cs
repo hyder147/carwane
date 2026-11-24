@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Hosting platforms (Render, Railway, Azure) pass the port in the PORT env var.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Database: SQLite by default (local/demo). Switch to PostgreSQL by setting
 // "Database:Provider" to "Postgres" and a Npgsql connection string in appsettings.json
 // or via environment variable ConnectionStrings__CarwaneDb.
